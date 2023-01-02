@@ -1,6 +1,6 @@
 use crate::token::{Token, TokenValue};
-use std::str::CharIndices;
 use std::iter::Peekable;
+use std::str::CharIndices;
 
 pub struct Lexer<'source> {
     input: &'source str,
@@ -37,7 +37,7 @@ impl<'source> Lexer<'source> {
         if !self.char.is_whitespace() {
             return;
         }
-        while let Some((pos, char)) = self.iter.next() {
+        for (pos, char) in self.iter.by_ref() {
             if !char.is_whitespace() {
                 self.char = char;
                 self.position = pos;
@@ -46,11 +46,39 @@ impl<'source> Lexer<'source> {
         }
     }
 
+    fn peek_char(&mut self) -> char {
+        self.iter
+            .peek()
+            .map_or_else(|| '\x00', |(_, character)| *character)
+    }
+
+    fn read_identifier(&mut self) -> &'source str {
+        let start = self.position;
+        while self.char.is_alphanumeric() {
+            self.read_char();
+        }
+        &self.input[start..self.position]
+    }
+
+    fn read_number(&mut self) -> &'source str {
+        let start = self.position;
+        while self.char.is_ascii_digit() {
+            self.read_char();
+        }
+        &self.input[start..self.position]
+    }
+
     fn next_token(&mut self) -> Token<'source> {
         self.skip_whitespace();
 
         let token_value = match self.char {
-            '=' => TokenValue::Assign,
+            '=' => {
+                if self.peek_char() == '=' {
+                    TokenValue::Equal
+                } else {
+                    TokenValue::Assign
+                }
+            }
             '+' => TokenValue::Plus,
             ',' => TokenValue::Comma,
             ';' => TokenValue::Semicolon,
@@ -60,11 +88,24 @@ impl<'source> Lexer<'source> {
             '}' => TokenValue::RBrace,
             '\x00' => TokenValue::Eof,
 
+            char if char.is_alphabetic() => {
+                let ident = self.read_identifier();
+                TokenValue::identifier_from(ident)
+            }
+
+            char if char.is_ascii_digit() => {
+                let number = self.read_number();
+                TokenValue::Int(number)
+            }
+
             _ => TokenValue::Illegal,
         };
         self.read_char();
 
-        Token{ value: token_value, pos: self.position}
+        Token {
+            value: token_value,
+            pos: self.position,
+        }
     }
 }
 
@@ -93,8 +134,8 @@ mod tests {
         let input = "=+(){},;";
 
         use crate::token::TokenValue::*;
-        let expected_tokens: [TokenValue; 8] = [
-            Assign, Plus, LParen, RParen, LBrace, RBrace, Comma, Semicolon,
+        let expected_tokens: [TokenValue; 9] = [
+            Assign, Plus, LParen, RParen, LBrace, RBrace, Comma, Semicolon, Eof,
         ];
 
         let mut lexer = Lexer::new(input);

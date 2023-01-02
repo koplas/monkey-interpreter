@@ -12,6 +12,9 @@ pub enum TokenValue<'source> {
     Assign,
     Plus,
 
+    Equal,
+    NotEqual,
+
     Comma,
     Semicolon,
 
@@ -24,6 +27,16 @@ pub enum TokenValue<'source> {
     Let,
 }
 
+impl<'source> TokenValue<'source> {
+    pub fn identifier_from(ident: &'source str) -> Self {
+        match ident {
+            "let" => Self::Let,
+            "fn" => Self::Function,
+            _ => Self::Indentifier(ident),
+        }
+    }
+}
+
 impl fmt::Display for TokenValue<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         use crate::token::TokenValue::*;
@@ -34,6 +47,8 @@ impl fmt::Display for TokenValue<'_> {
             Int(..) => "Int",
             Assign => "=",
             Plus => "+",
+            Equal => "==",
+            NotEqual => "!=",
             Comma => ",",
             Semicolon => ";",
             LParen => "(",
