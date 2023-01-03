@@ -98,7 +98,7 @@ impl fmt::Display for TokenValue<'_> {
             Return => "return",
             Macro => "macro",
         };
-        write!(f, "{}", token)
+        write!(f, "{token}")
     }
 }
 

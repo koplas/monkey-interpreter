@@ -10,7 +10,7 @@ pub struct Lexer<'source> {
 }
 
 impl<'source> Lexer<'source> {
-    fn new(input: &'source str) -> Self {
+    pub fn new(input: &'source str) -> Self {
         let mut lexer = Self {
             input,
             iter: input.char_indices().peekable(),
@@ -111,11 +111,8 @@ impl<'source> Lexer<'source> {
         self.skip_whitespace();
 
         if self.char == '/' && self.iter.peek().is_some_and(|(_, c)| c == &'/') {
-           self.skip_line(); 
-           self.skip_whitespace();
-        }
-        if self.position == 551 {
-            print!("e");
+            self.skip_line();
+            self.skip_whitespace();
         }
 
         let token_value = match self.char {
