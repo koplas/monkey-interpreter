@@ -355,7 +355,7 @@ mod tests {
         let mut lexer = Lexer::new(input);
         for expected_token in expected_tokens {
             let token = lexer.next_token();
-            println!("{:?}", token);
+            println!("{token:?}");
             assert_eq!(&token.value, expected_token);
         }
     }

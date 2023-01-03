@@ -12,7 +12,7 @@ fn main() {
         if let Ok(input) = line {
             let lexer = Lexer::new(&input);
             for token in lexer {
-                println!("{:?}", token);
+                println!("{token:?}");
             }
         }
     }
