@@ -31,49 +31,57 @@ impl<'source> Lexer<'source> {
         }
     }
 
+    fn read_until<F: Fn(char) -> bool>(&mut self, func: F) {
+        while let Some((_pos, char)) = self.iter.peek() {
+            if func(*char) {
+                self.read_char();
+            } else {
+                return;
+            }
+        }
+    }
+
+    fn skip<F: Fn(char) -> bool>(&mut self, func: F) {
+        if !func(self.char) {
+            return;
+        }
+        loop {
+            if let Some((pos, char)) = self.iter.next() {
+                self.char = char;
+                self.position = pos;
+                if !func(char) {
+                    return;
+                }
+            } else {
+                self.char = '\x00';
+                return;
+            }
+        }
+    }
+
     fn read_char_if_eq(&mut self, expected: char) -> bool {
         if let Some((pos, char)) = self.iter.next_if(|&(_, char)| char == expected) {
             self.char = char;
             self.position = pos;
             true
         } else {
-            self.char = '\x00';
             false
         }
     }
 
     fn skip_whitespace(&mut self) {
-        if !self.char.is_whitespace() {
-            return;
-        }
-        // Todo refactor into read until
-        for (pos, char) in self.iter.by_ref() {
-            if !char.is_whitespace() {
-                self.char = char;
-                self.position = pos;
-                break;
-            }
-        }
-        if self.iter.peek().is_none() {
-            self.char = '\x00';
-        }
+        self.skip(|c| c.is_whitespace())
     }
 
     fn read_identifier(&mut self) -> &'source str {
         let start = self.position;
-        // Todo rewrite loop refactor into read until
-        while self.iter.next_if(|(_, c)| c.is_alphanumeric()).is_some() {
-            self.position += 1;
-        }
+        self.read_until(|c| c.is_alphanumeric());
         &self.input[start..self.position + 1]
     }
 
     fn read_number(&mut self) -> &'source str {
         let start = self.position;
-        // Todo rewrite loop, refactor into read until
-        while self.iter.next_if(|(_, c)| c.is_ascii_digit()).is_some() {
-            self.position += 1;
-        }
+        self.read_until(|c| c.is_ascii_digit());
         &self.input[start..self.position + 1]
     }
 
@@ -91,20 +99,12 @@ impl<'source> Lexer<'source> {
     fn read_string(&mut self) -> TokenValue<'source> {
         self.read_char();
         let start = self.position;
-        loop {
-            if self.char == '"' || self.char == '\x00' {
-                break;
-            }
-            self.read_char();
-        }
+        self.skip(|c| c != '"');
         TokenValue::String(&self.input[start..self.position])
     }
 
     fn skip_line(&mut self) {
-        while self.iter.next_if(|(_, c)| c != &'\n').is_some() {
-            self.position += 1;
-        }
-        self.read_char();
+        self.skip(|c| c != '\n');
     }
 
     fn next_token(&mut self) -> Token<'source> {
@@ -114,6 +114,8 @@ impl<'source> Lexer<'source> {
             self.skip_line();
             self.skip_whitespace();
         }
+
+        let position = self.position;
 
         let token_value = match self.char {
             '=' => {
@@ -165,7 +167,7 @@ impl<'source> Lexer<'source> {
 
         Token {
             value: token_value,
-            pos: self.position,
+            pos: position,
         }
     }
 }
@@ -221,7 +223,7 @@ mod tests {
         let b = 123.45;
         let c = 0.678;
         let d = 9.0;
-
+        
         macro(x, y) { x + y; };
         "#;
 
