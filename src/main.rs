@@ -1,5 +1,3 @@
-#![feature(is_some_and)]
-
 use crate::lexer::Lexer;
 
 mod lexer;
